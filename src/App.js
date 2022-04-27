@@ -1,9 +1,10 @@
 import "./App.scss";
 import React, { useRef, useState } from "react";
 import { Canvas, useFrame, useLoader } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import { TextureLoader } from "three/src/loaders/TextureLoader";
 import { gsap } from "gsap";
+import { useSpring, animated } from "@react-spring/three";
 
 function Box(props) {
     // This reference will give us direct access to the mesh
@@ -13,14 +14,24 @@ function Box(props) {
     const [hovered, setHover] = useState(false);
     const [active, setActive] = useState(false);
 
+    const { scale } = useSpring({
+        scale: active ? 1.5 : 0.5,
+        config: {
+            tension: 120,
+            friction: 14,
+        },
+    });
+
     // Subscribe this component to the render-loop, rotate the mesh every frame
-    useFrame(() => (mesh.current.rotation.x += !hovered ? 0.01 : 0));
+    useFrame(() => {
+        mesh.current.rotation.x += !hovered ? 0.01 : 0;
+    });
 
     return (
-        <mesh {...props} ref={mesh} scale={active ? 1.5 : 0.5} onClick={() => setActive(!active)} onPointerOver={() => setHover(true)} onPointerOut={() => setHover(false)}>
+        <animated.mesh {...props} ref={mesh} scale={scale} onClick={() => setActive(!active)} onPointerOver={() => setHover(true)} onPointerOut={() => setHover(false)}>
             <boxGeometry args={[1, 1, 1]} />
             <meshStandardMaterial map={props.map} />
-        </mesh>
+        </animated.mesh>
     );
 }
 
@@ -32,6 +43,7 @@ function App() {
     const [depth, setDepth] = useState(10);
     const [query, setQuery] = useState("");
     const [textures, setTextures] = useState(defaultTextures);
+    const [size, setSize] = useState(8);
 
     const loadedTextures = useLoader(TextureLoader, textures);
 
@@ -39,7 +51,7 @@ function App() {
     for (let z = 0; z < depth; z++) {
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
-                positions.push([gsap.utils.mapRange(0, width, -8, 8, x), gsap.utils.mapRange(0, height, -8, 8, y), gsap.utils.mapRange(0, depth, -8, 8, z)]);
+                positions.push([gsap.utils.mapRange(0, width, -size, size, x), gsap.utils.mapRange(0, height, -size, size, y), gsap.utils.mapRange(0, depth, -size, size, z)]);
             }
         }
     }
@@ -71,6 +83,11 @@ function App() {
                     <br />
                     <input type="range" min="1" max="15" step="1" onChange={(e) => setDepth(e.target.value)} />
                 </div>
+                <div>
+                    <label>Size</label>
+                    <br />
+                    <input type="range" min="1" max="16" step="1" onChange={(e) => setSize(e.target.value)} />
+                </div>
                 <form onSubmit={handleSearch}>
                     <label>Search</label>
                     <br />
@@ -87,6 +104,8 @@ function App() {
                 })}
 
                 <OrbitControls />
+
+                <PerspectiveCamera makeDefault position={[15, 15, -30]} />
             </Canvas>
         </>
     );
